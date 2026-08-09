@@ -13,7 +13,7 @@ export default function InterviewPage() {
   const [done, setDone] = useState(false);
 
   const startInterview = async () => {
-    if (!candidateId) {
+    if (!candidateId.trim()) {
       alert("Please enter candidate ID");
       return;
     }
@@ -30,9 +30,7 @@ export default function InterviewPage() {
         },
         body: JSON.stringify({
           sessionId: newSessionId,
-          candidate: {
-            id: candidateId,
-          },
+          candidate: { id: candidateId },
         }),
       });
 
@@ -93,76 +91,351 @@ export default function InterviewPage() {
   };
 
   return (
-    <main style={{ maxWidth: "800px", margin: "40px auto", padding: "20px" }}>
-      <h1>AI Technical Interview</h1>
-
-      {!started && (
-        <div>
-          <h2>Start Interview</h2>
-
-          <input
-            type="text"
-            placeholder="Enter Candidate ID"
-            value={candidateId}
-            onChange={(e) => setCandidateId(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "12px",
-              marginBottom: "15px",
-            }}
-          />
-
-          <button onClick={startInterview} disabled={loading}>
-            {loading ? "Starting..." : "Start Interview"}
-          </button>
-        </div>
-      )}
-
-      {started && (
-        <div>
-          <h2>Interview Question</h2>
-
-          <p>{question}</p>
-
-          {!done && (
-            <>
-              <textarea
-                placeholder="Type your answer here..."
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                rows={8}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  marginTop: "15px",
-                }}
-              />
-
-              <br />
-
-              <button
-                onClick={submitAnswer}
-                disabled={loading}
-                style={{ marginTop: "15px" }}
-              >
-                {loading ? "AI is evaluating..." : "Submit Answer"}
-              </button>
-            </>
-          )}
-
-          {evaluation && (
-            <div style={{ marginTop: "30px" }}>
-              <h2>AI Evaluation</h2>
-
-              <pre style={{ whiteSpace: "pre-wrap" }}>{evaluation}</pre>
+    <main
+      style={{
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg, #09090b 0%, #111827 50%, #0f172a 100%)",
+        color: "#f8fafc",
+        padding: "40px 20px",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
+      <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+        <header
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "30px",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: "14px",
+                color: "#94a3b8",
+                marginBottom: "6px",
+              }}
+            >
+              AI INTERVIEW PLATFORM
             </div>
-          )}
 
-          {done && (
-            <h2 style={{ marginTop: "30px" }}>🎉 Interview Completed!</h2>
-          )}
-        </div>
-      )}
+            <h1 style={{ margin: 0, fontSize: "32px" }}>
+              AI Technical Interview
+            </h1>
+          </div>
+
+          <div
+            style={{
+              padding: "8px 14px",
+              borderRadius: "999px",
+              background: "rgba(34,197,94,0.12)",
+              border: "1px solid rgba(34,197,94,0.3)",
+              color: "#4ade80",
+              fontSize: "13px",
+              fontWeight: 600,
+            }}
+          >
+            ● AI ONLINE
+          </div>
+        </header>
+
+        {!started && (
+          <section
+            style={{
+              background: "rgba(15,23,42,0.85)",
+              border: "1px solid #334155",
+              borderRadius: "20px",
+              padding: "40px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "18px",
+                background: "#1e293b",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "30px",
+                marginBottom: "20px",
+              }}
+            >
+              🤖
+            </div>
+
+            <h2 style={{ fontSize: "26px", marginBottom: "10px" }}>
+              Start your technical interview
+            </h2>
+
+            <p
+              style={{
+                color: "#94a3b8",
+                lineHeight: 1.6,
+                marginBottom: "30px",
+              }}
+            >
+              The AI interviewer will ask questions based on your completed
+              curriculum and evaluate your answers in real time.
+            </p>
+
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                color: "#cbd5e1",
+                marginBottom: "8px",
+              }}
+            >
+              Candidate ID
+            </label>
+
+            <input
+              type="text"
+              placeholder="Example: CAND-001"
+              value={candidateId}
+              onChange={(e) => setCandidateId(e.target.value)}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "15px",
+                borderRadius: "12px",
+                border: "1px solid #475569",
+                background: "#020617",
+                color: "#f8fafc",
+                outline: "none",
+                fontSize: "15px",
+                marginBottom: "18px",
+              }}
+            />
+
+            <button
+              onClick={startInterview}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "15px",
+                borderRadius: "12px",
+                border: "none",
+                background: loading ? "#475569" : "#2563eb",
+                color: "white",
+                fontSize: "16px",
+                fontWeight: 700,
+                cursor: loading ? "not-allowed" : "pointer",
+              }}
+            >
+              {loading ? "Starting Interview..." : "Start Interview →"}
+            </button>
+          </section>
+        )}
+
+        {started && (
+          <>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                marginBottom: "20px",
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  height: "6px",
+                  background: "#1e293b",
+                  borderRadius: "999px",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: done ? "100%" : "50%",
+                    height: "100%",
+                    background: "#2563eb",
+                    borderRadius: "999px",
+                  }}
+                />
+              </div>
+
+              <span style={{ fontSize: "13px", color: "#94a3b8" }}>
+                {done ? "Completed" : "In Progress"}
+              </span>
+            </div>
+
+            <section
+              style={{
+                background: "rgba(15,23,42,0.88)",
+                border: "1px solid #334155",
+                borderRadius: "20px",
+                padding: "30px",
+                marginBottom: "20px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  marginBottom: "20px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "14px",
+                    background: "#1d4ed8",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "22px",
+                  }}
+                >
+                  🤖
+                </div>
+
+                <div>
+                  <div style={{ fontWeight: 700 }}>AI Interviewer</div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    Technical Interview
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "#020617",
+                  border: "1px solid #1e293b",
+                  borderRadius: "14px",
+                  padding: "22px",
+                  lineHeight: 1.7,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {question}
+              </div>
+            </section>
+
+            {!done && (
+              <section
+                style={{
+                  background: "rgba(15,23,42,0.88)",
+                  border: "1px solid #334155",
+                  borderRadius: "20px",
+                  padding: "25px",
+                  marginBottom: "20px",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: "12px" }}>
+                  👤 Your Answer
+                </div>
+
+                <textarea
+                  placeholder="Explain your answer clearly. Include examples where possible..."
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  rows={7}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "16px",
+                    borderRadius: "14px",
+                    border: "1px solid #475569",
+                    background: "#020617",
+                    color: "#f8fafc",
+                    fontSize: "15px",
+                    lineHeight: 1.6,
+                    resize: "vertical",
+                    outline: "none",
+                  }}
+                />
+
+                <button
+                  onClick={submitAnswer}
+                  disabled={loading}
+                  style={{
+                    marginTop: "15px",
+                    width: "100%",
+                    padding: "14px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: loading ? "#475569" : "#2563eb",
+                    color: "white",
+                    fontWeight: 700,
+                    fontSize: "15px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {loading ? "🧠 AI is evaluating..." : "Submit Answer →"}
+                </button>
+              </section>
+            )}
+
+            {evaluation && (
+              <section
+                style={{
+                  background: "rgba(15,23,42,0.88)",
+                  border: "1px solid #334155",
+                  borderRadius: "20px",
+                  padding: "25px",
+                  marginBottom: "20px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    marginBottom: "15px",
+                  }}
+                >
+                  <span style={{ fontSize: "24px" }}>🧠</span>
+
+                  <h2 style={{ margin: 0, fontSize: "20px" }}>AI Evaluation</h2>
+                </div>
+
+                <pre
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    margin: 0,
+                    color: "#cbd5e1",
+                    lineHeight: 1.7,
+                    fontFamily: "Arial, sans-serif",
+                  }}
+                >
+                  {evaluation}
+                </pre>
+              </section>
+            )}
+
+            {done && (
+              <section
+                style={{
+                  textAlign: "center",
+                  background: "rgba(15,23,42,0.9)",
+                  border: "1px solid #334155",
+                  borderRadius: "20px",
+                  padding: "40px 25px",
+                }}
+              >
+                <div style={{ fontSize: "52px", marginBottom: "15px" }}>🎉</div>
+
+                <h2 style={{ fontSize: "28px", marginBottom: "10px" }}>
+                  Interview Completed!
+                </h2>
+
+                <p style={{ color: "#94a3b8", lineHeight: 1.6 }}>
+                  Your technical interview has been evaluated successfully.
+                </p>
+              </section>
+            )}
+          </>
+        )}
+      </div>
     </main>
   );
 }
