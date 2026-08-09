@@ -1,34 +1,168 @@
-export default function Home() {
+"use client";
+
+import { useState } from "react";
+
+export default function InterviewPage() {
+  const [sessionId, setSessionId] = useState("");
+  const [candidateId, setCandidateId] = useState("");
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [evaluation, setEvaluation] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const startInterview = async () => {
+    if (!candidateId) {
+      alert("Please enter candidate ID");
+      return;
+    }
+
+    const newSessionId = crypto.randomUUID();
+    setSessionId(newSessionId);
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/interview", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId: newSessionId,
+          candidate: {
+            id: candidateId,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Failed to start interview");
+        return;
+      }
+
+      setQuestion(data.reply);
+      setStarted(true);
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitAnswer = async () => {
+    if (!answer.trim()) {
+      alert("Please enter your answer");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/interview", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sessionId,
+          message: answer,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Failed to submit answer");
+        return;
+      }
+
+      setEvaluation(data.evaluation || "");
+      setQuestion(data.reply);
+      setAnswer("");
+      setDone(data.done);
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-6 text-center">
-        <p className="mb-4 text-sm font-medium uppercase tracking-[0.25em] text-cyan-400">
-          AI Interview Agent
-        </p>
+    <main style={{ maxWidth: "800px", margin: "40px auto", padding: "20px" }}>
+      <h1>AI Technical Interview</h1>
 
-        <h1 className="max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
-          Your learning journey.
-          <br />
-          Your technical interview.
-        </h1>
+      {!started && (
+        <div>
+          <h2>Start Interview</h2>
 
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-          Practice realistic AI engineering interviews based on the topics
-          you've actually learned throughout the 31-day AI Cohort.
-        </p>
+          <input
+            type="text"
+            placeholder="Enter Candidate ID"
+            value={candidateId}
+            onChange={(e) => setCandidateId(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "12px",
+              marginBottom: "15px",
+            }}
+          />
 
-        <button className="mt-10 rounded-xl bg-cyan-400 px-7 py-4 font-semibold text-slate-950 transition hover:bg-cyan-300">
-          Start Interview
-        </button>
-
-        <div className="mt-12 flex gap-8 text-sm text-slate-400">
-          <span>31-Day Curriculum</span>
-          <span>•</span>
-          <span>Adaptive Questions</span>
-          <span>•</span>
-          <span>Personalized Feedback</span>
+          <button onClick={startInterview} disabled={loading}>
+            {loading ? "Starting..." : "Start Interview"}
+          </button>
         </div>
-      </div>
+      )}
+
+      {started && (
+        <div>
+          <h2>Interview Question</h2>
+
+          <p>{question}</p>
+
+          {!done && (
+            <>
+              <textarea
+                placeholder="Type your answer here..."
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                rows={8}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginTop: "15px",
+                }}
+              />
+
+              <br />
+
+              <button
+                onClick={submitAnswer}
+                disabled={loading}
+                style={{ marginTop: "15px" }}
+              >
+                {loading ? "AI is evaluating..." : "Submit Answer"}
+              </button>
+            </>
+          )}
+
+          {evaluation && (
+            <div style={{ marginTop: "30px" }}>
+              <h2>AI Evaluation</h2>
+
+              <pre style={{ whiteSpace: "pre-wrap" }}>{evaluation}</pre>
+            </div>
+          )}
+
+          {done && (
+            <h2 style={{ marginTop: "30px" }}>🎉 Interview Completed!</h2>
+          )}
+        </div>
+      )}
     </main>
   );
 }
