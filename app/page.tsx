@@ -2,12 +2,20 @@
 
 import { useState } from "react";
 
+type Feedback = {
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+  next: string[];
+};
+
 export default function InterviewPage() {
   const [sessionId, setSessionId] = useState("");
   const [candidateId, setCandidateId] = useState("");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [evaluation, setEvaluation] = useState("");
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loading, setLoading] = useState(false);
   const [started, setStarted] = useState(false);
   const [done, setDone] = useState(false);
@@ -82,6 +90,10 @@ export default function InterviewPage() {
       setQuestion(data.reply);
       setAnswer("");
       setDone(data.done);
+
+      if (data.feedback) {
+        setFeedback(data.feedback);
+      }
     } catch (error) {
       console.error(error);
       alert("Something went wrong.");
@@ -412,7 +424,132 @@ export default function InterviewPage() {
               </section>
             )}
 
-            {done && (
+            {done && feedback && (
+              <section
+                style={{
+                  background: "rgba(15,23,42,0.95)",
+                  border: "1px solid #334155",
+                  borderRadius: "20px",
+                  padding: "30px",
+                  marginBottom: "20px",
+                }}
+              >
+                <h2
+                  style={{
+                    marginTop: 0,
+                    marginBottom: "25px",
+                    fontSize: "24px",
+                  }}
+                >
+                  📊 Final Interview Feedback
+                </h2>
+
+                <div
+                  style={{
+                    background: "#020617",
+                    border: "1px solid #1e293b",
+                    borderRadius: "14px",
+                    padding: "20px",
+                    marginBottom: "18px",
+                  }}
+                >
+                  <h3 style={{ marginTop: 0 }}>📝 Summary</h3>
+
+                  <p
+                    style={{
+                      color: "#cbd5e1",
+                      lineHeight: 1.7,
+                      marginBottom: 0,
+                    }}
+                  >
+                    {feedback.summary}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "18px",
+                    marginBottom: "18px",
+                  }}
+                >
+                  <div
+                    style={{
+                      background: "#020617",
+                      border: "1px solid #1e293b",
+                      borderRadius: "14px",
+                      padding: "20px",
+                    }}
+                  >
+                    <h3 style={{ marginTop: 0 }}>💪 Strengths</h3>
+
+                    <ul
+                      style={{
+                        color: "#cbd5e1",
+                        lineHeight: 1.8,
+                        paddingLeft: "20px",
+                        marginBottom: 0,
+                      }}
+                    >
+                      {feedback.strengths.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div
+                    style={{
+                      background: "#020617",
+                      border: "1px solid #1e293b",
+                      borderRadius: "14px",
+                      padding: "20px",
+                    }}
+                  >
+                    <h3 style={{ marginTop: 0 }}>🎯 Gaps</h3>
+
+                    <ul
+                      style={{
+                        color: "#cbd5e1",
+                        lineHeight: 1.8,
+                        paddingLeft: "20px",
+                        marginBottom: 0,
+                      }}
+                    >
+                      {feedback.gaps.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    background: "#020617",
+                    border: "1px solid #1e293b",
+                    borderRadius: "14px",
+                    padding: "20px",
+                  }}
+                >
+                  <h3 style={{ marginTop: 0 }}>🚀 Next Steps</h3>
+
+                  <ul
+                    style={{
+                      color: "#cbd5e1",
+                      lineHeight: 1.8,
+                      paddingLeft: "20px",
+                      marginBottom: 0,
+                    }}
+                  >
+                    {feedback.next.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            )}
+
+            {done && !feedback && (
               <section
                 style={{
                   textAlign: "center",
@@ -430,6 +567,28 @@ export default function InterviewPage() {
 
                 <p style={{ color: "#94a3b8", lineHeight: 1.6 }}>
                   Your technical interview has been evaluated successfully.
+                </p>
+              </section>
+            )}
+
+            {done && feedback && (
+              <section
+                style={{
+                  textAlign: "center",
+                  background: "rgba(15,23,42,0.9)",
+                  border: "1px solid #334155",
+                  borderRadius: "20px",
+                  padding: "35px 25px",
+                }}
+              >
+                <div style={{ fontSize: "48px", marginBottom: "10px" }}>🎉</div>
+
+                <h2 style={{ fontSize: "28px", marginBottom: "8px" }}>
+                  Interview Completed!
+                </h2>
+
+                <p style={{ color: "#94a3b8", lineHeight: 1.6, margin: 0 }}>
+                  Your personalized technical interview feedback is ready.
                 </p>
               </section>
             )}

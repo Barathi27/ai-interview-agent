@@ -5,16 +5,52 @@ import candidates from "../../../data/candidates.json";
 import openai from "../../../lib/openai";
 import { saveMemory, searchMemory } from "../../../lib/breeth";
 
+type CurriculumTopic = {
+  day: number;
+  title: string;
+  objectives?: string[];
+  tools?: string[];
+  attempts?: number;
+  [key: string]: unknown;
+};
+
+type InterviewCandidate = {
+  member: {
+    id: string;
+    name: string;
+    jobRole: string;
+    yearsExperience: number;
+    education: string;
+    status: string;
+  };
+  missions: {
+    day: number;
+    title: string;
+    passed?: boolean;
+    attempts?: number;
+    skipped?: boolean;
+  }[];
+};
+
 type InterviewSession = {
-  candidate: any;
-  topics: any[];
+  candidate: InterviewCandidate;
+  topics: CurriculumTopic[];
   currentTopicIndex: number;
   questionNumber: number;
   answers: string[];
   evaluations: string[];
 };
 
+type FinalFeedback = {
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+  next: string[];
+};
+
 const sessions = new Map<string, InterviewSession>();
+
+const MODEL = "llama-3.1-8b-instant";
 
 export async function POST(request: Request) {
   try {
@@ -39,7 +75,7 @@ export async function POST(request: Request) {
       const candidateId = body.candidate?.member?.id || body.candidate?.id;
 
       const candidateRecord = candidates.candidates.find(
-        (item: any) => item.member.id === candidateId,
+        (item) => item.member.id === candidateId,
       );
 
       if (!candidateRecord) {
@@ -53,14 +89,14 @@ export async function POST(request: Request) {
 
       // Only use missions that were actually passed
       const completedMissions = candidateRecord.missions.filter(
-        (mission: any) => mission.passed === true,
+        (mission) => mission.passed === true,
       );
 
       // Convert completed missions into curriculum topics
-      const topics = completedMissions
-        .map((mission: any) => {
+      const topics: CurriculumTopic[] = completedMissions
+        .map((mission): CurriculumTopic | null => {
           const curriculumDay = curriculum.days.find(
-            (day: any) => day.day === mission.day,
+            (day) => day.day === mission.day,
           );
 
           if (!curriculumDay) {
@@ -72,7 +108,7 @@ export async function POST(request: Request) {
             attempts: mission.attempts,
           };
         })
-        .filter((topic): topic is any => topic !== null);
+        .filter((topic): topic is CurriculumTopic => topic !== null);
 
       if (topics.length === 0) {
         return NextResponse.json(
@@ -134,6 +170,15 @@ export async function POST(request: Request) {
 
     const currentTopic = session.topics[session.currentTopicIndex];
 
+    if (!currentTopic) {
+      return NextResponse.json(
+        {
+          error: "Current interview topic not found.",
+        },
+        { status: 500 },
+      );
+    }
+
     // ==========================================
     // STORE CANDIDATE ANSWER
     // ==========================================
@@ -164,10 +209,10 @@ export async function POST(request: Request) {
     try {
       const memoryResult = await searchMemory(
         `Previous interview answers and knowledge of ${session.candidate.member.name} about ${currentTopic.title}`,
-        5,
+        3,
       );
 
-      previousMemory = JSON.stringify(memoryResult);
+      previousMemory = JSON.stringify(memoryResult).slice(0, 1500);
 
       console.log("Breeth memory retrieved successfully.");
     } catch (error) {
@@ -177,25 +222,27 @@ export async function POST(request: Request) {
     }
 
     // ==========================================
-    // OPENAI ANSWER EVALUATION
+    // AI ANSWER EVALUATION
     // ==========================================
 
     let aiFeedback = "AI evaluation is currently unavailable.";
 
     try {
       const evaluation = await openai.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: MODEL,
+
+        max_tokens: 250,
 
         messages: [
           {
             role: "system",
             content:
               "You are an AI technical interviewer. " +
-              "Evaluate the candidate's answer based on the interview topic " +
-              "and the candidate's previous memory/context. " +
-              "Give a score from 1 to 10 and concise feedback. " +
-              "Mention strengths and areas for improvement. " +
-              "Use previous memory only when it is relevant.",
+              "Evaluate the candidate's answer based on the interview topic. " +
+              "Give a score from 1 to 10. " +
+              "Be concise and specific. " +
+              "Mention strengths and one or two areas for improvement. " +
+              "Do not invent information.",
           },
 
           {
@@ -204,15 +251,13 @@ export async function POST(request: Request) {
 Topic:
 ${currentTopic.title}
 
-Candidate's previous memory/context:
+Previous relevant memory:
 ${previousMemory}
 
-Candidate's current answer:
+Candidate answer:
 ${body.message}
 
-Evaluate the current answer using the previous memory/context when relevant.
-
-Return:
+Return exactly:
 
 Score: X/10
 
@@ -234,17 +279,14 @@ Memory-aware observation:
         "Unable to evaluate the answer.";
 
       console.log("=================================");
-
       console.log("AI FEEDBACK");
-
       console.log(aiFeedback);
-
       console.log("=================================");
     } catch (error) {
-      console.error("OpenAI evaluation error:", error);
+      console.error("AI evaluation error:", error);
 
       aiFeedback =
-        "AI evaluation is currently unavailable because the OpenAI API could not be reached.";
+        "AI evaluation is currently unavailable because the AI API could not be reached.";
     }
 
     // Save AI evaluation
@@ -302,7 +344,6 @@ Memory-aware observation:
       session.currentTopicIndex < session.topics.length - 1
     ) {
       session.currentTopicIndex++;
-
       session.questionNumber = 1;
 
       const nextTopic = session.topics[session.currentTopicIndex];
@@ -328,20 +369,21 @@ Memory-aware observation:
     // END INTERVIEW
     // ==========================================
 
-    // ==========================================
-    // END INTERVIEW
-    // ==========================================
+    let finalFeedback: FinalFeedback = {
+      summary:
+        `The candidate completed an interview based on ` +
+        `${session.topics.length} completed curriculum topics.`,
 
-    let finalFeedback = {
-      summary: `The candidate completed an interview based on ${session.topics.length} completed curriculum topics.`,
       strengths: [
         "Demonstrated understanding of technical concepts.",
         "Attempted practical application of the concepts.",
       ],
+
       gaps: [
         "Some answers may require deeper technical detail.",
         "More real-world implementation examples could strengthen responses.",
       ],
+
       next: [
         "Practice explaining technical concepts with concrete examples.",
         "Build small projects using the completed curriculum topics.",
@@ -349,40 +391,56 @@ Memory-aware observation:
       ],
     };
 
+    // ==========================================
+    // GENERATE FINAL AI FEEDBACK
+    // ==========================================
+
     try {
       const finalEvaluation = await openai.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: MODEL,
+
+        max_tokens: 350,
 
         messages: [
           {
             role: "system",
             content:
               "You are a senior technical interviewer. " +
-              "Generate a final interview assessment based on the candidate's answers " +
-              "and previous AI evaluations. Be concise, specific, and evidence-based. " +
-              "Do not invent achievements that are not present in the data.",
+              "Generate a concise final assessment based only on the candidate's answers. " +
+              "Be specific and evidence-based. " +
+              "Do not invent achievements.",
           },
+
           {
             role: "user",
             content: `
-Candidate: ${session.candidate.member.name}
-Role: ${session.candidate.member.jobRole}
-Experience: ${session.candidate.member.yearsExperience} years
+Candidate:
+${session.candidate.member.name}
+
+Role:
+${session.candidate.member.jobRole}
+
+Experience:
+${session.candidate.member.yearsExperience} years
 
 Topics covered:
-${session.topics.map((topic: any) => `Day ${topic.day}: ${topic.title}`).join("\n")}
+${session.topics
+  .map((topic: CurriculumTopic) => `Day ${topic.day}: ${topic.title}`)
+  .join("\n")}
 
 Candidate answers:
 ${session.answers
-  .map((answer, index) => `${index + 1}. ${answer}`)
+  .map((answer: string, index: number) => `${index + 1}. ${answer}`)
   .join("\n\n")}
 
 AI evaluations:
 ${session.evaluations
-  .map((evaluation, index) => `${index + 1}. ${evaluation}`)
+  .map((evaluation: string, index: number) => `${index + 1}. ${evaluation}`)
   .join("\n\n")}
 
-Generate the final assessment in exactly this format:
+Generate the final assessment.
+
+Return exactly:
 
 Summary:
 ...
@@ -401,7 +459,7 @@ Next Steps:
 - ...
 - ...
 - ...
-`,
+              `,
           },
         ],
       });
@@ -411,8 +469,8 @@ Next Steps:
       if (generatedFeedback) {
         finalFeedback = {
           summary: generatedFeedback,
-          strengths: ["See the AI-generated assessment above."],
-          gaps: ["See the AI-generated assessment above."],
+          strengths: ["See the detailed AI-generated assessment above."],
+          gaps: ["See the detailed AI-generated assessment above."],
           next: ["Follow the recommendations in the AI-generated assessment."],
         };
       }
@@ -422,7 +480,15 @@ Next Steps:
       console.error("Final feedback generation error:", error);
     }
 
+    // ==========================================
+    // DELETE SESSION
+    // ==========================================
+
     sessions.delete(sessionId);
+
+    // ==========================================
+    // FINAL RESPONSE
+    // ==========================================
 
     return NextResponse.json({
       reply: `AI Evaluation:\n\n${aiFeedback}\n\n` + "🎉 Interview completed.",
